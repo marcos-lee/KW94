@@ -58,9 +58,3 @@ st = [10,0,0,0]
 @time Domain_set = StateSpace(st,41)
 
 Domain_set[41]
-
-
-
-R1(SST[500][1],SST[500][2],SST[500][3],.5)
-R2(SST[500][1],SST[500][2],SST[500][3],.5)
-R3(SST[500][1],SST[500][4],.5)
