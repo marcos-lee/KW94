@@ -67,7 +67,6 @@ fEmaxT = fEmax
 @time Emaxall = genEmaxAll(fEmax,Domain_set,Emaxall,MC_ϵ)
 #about 11-12 minutes
 
-
 ##########################################################################
 
 # Simulate the model for N people

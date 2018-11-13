@@ -14,7 +14,6 @@ function R4(ϵ4)
     r4 = p.γ0 .+ ϵ4
 end
 
-
 # Calculates Emax at terminal period
 function EmaxT(T::Int64,epsilon::Array)
     SST = Domain_set[T]
@@ -34,7 +33,7 @@ end
 function Emaxt(T::Int64, Domain_set::Dict, fEmax::Dict, epsilon::Array)
     SST = Domain_set[T]
     Emax = zeros(size(SST,1),1)
-    for i = 2:size(SST,1)
+    for i = 1:size(SST,1)
         state = SST[i]
         d3 = state + [1,0,0,1-state[4]]
         d3[1] = min(20,d3[1])
