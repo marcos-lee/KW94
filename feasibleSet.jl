@@ -1,5 +1,5 @@
 #Julia 1.0.2
-function feasibleSet(st::Vector{Int64},up::Array)
+function feasibleSet(st::Vector{Int64}, up::Array)
     if sum([st[1] st[2] st[3]]) < 50
         if st[1] < 20
             output = Vector{Vector{Int64}}(undef,4)
@@ -25,21 +25,7 @@ function feasibleSet(st::Vector{Int64},up::Array)
     return output
 end
 
-
-up = Vector{Vector{Int64}}(undef,4)
-up[1] = [1,0,0,0]
-up[2] = [0,1,0,0]
-up[3] = [0,0,1,0]
-up[4] = [0,0,0,0]
-
-st = [20,20,10,1]
-
-
-feasibleSet(st,up)
-feasibleSet1(st,up)
-
-
-function StateSpace(st::Vector{Int64},T::Int64)
+function StateSpace(st::Vector{Int64}, T::Int64, up::Array)
     Domain_set = Dict{Int64,Vector}()
     Domain_set[1] = st
     D = Vector{Vector{Int64}}(undef,0)
@@ -53,8 +39,3 @@ function StateSpace(st::Vector{Int64},T::Int64)
     end
     return Domain_set
 end
-
-st = [10,0,0,0]
-@time Domain_set = StateSpace(st,41)
-
-Domain_set[41]
