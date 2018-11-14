@@ -25,7 +25,18 @@ function feasibleSet(st::Vector{Int64}, up::Array)
     return output
 end
 
-function StateSpace(st::Vector{Int64}, T::Int64, up::Array)
+function StateSpace(st::Vector{Int64}, T::Int64)
+    # Define an auxiliary vector to calculate the feasible set
+    # It adds 1 to the state vector according to the action taken
+    # First element: go to school
+    # Second: Work at 1
+    # Third: Work at 2
+    # Stay at home
+    up = Vector{Vector{Int64}}(undef,4)
+    up[1] = [1,0,0,0] #
+    up[2] = [0,1,0,0]
+    up[3] = [0,0,1,0]
+    up[4] = [0,0,0,0]
     Domain_set = Dict{Int64,Vector}()
     Domain_set[1] = st
     D = Vector{Vector{Int64}}(undef,0)

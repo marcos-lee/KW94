@@ -51,15 +51,18 @@ end
 # Combines both together
 function genEmaxAll(Domain_set::Dict, MC_ϵ::Array, T)
     println(T)
-    @time fEmax = EmaxT(T,MC_ϵ)
+    @time fEmax, tEmax = @timed EmaxT(T,MC_ϵ)
     Emaxall = Dict(T => fEmax)
+    timeEmax = Array{Float64}(undef, 40, 2)
+    timeEmax[40,:] = [40 tEmax]
     for t = reverse(2:T-1)
         println(t)
-        @time fEmax = Emaxt(Domain_set[t], fEmax, MC_ϵ)
+        @time fEmax, tEmax = @timed Emaxt(Domain_set[t], fEmax, MC_ϵ)
+        timeEmax[t,:] = [t tEmax]
         tempDict = Dict(t => fEmax)
         Emaxall = merge(Emaxall,tempDict)
     end
-    return Emaxall
+    return Emaxall, timeEmax
 end
 
 # Simulates one person in the model
@@ -76,10 +79,10 @@ function SimulateModel(T,st,N_ϵ,Emaxall)
         v4 = R4(N_ϵ[4,t]) .+ p.β*Emaxall[t+1][state]
         rmax = max(v1,v2,v3,v4)
         if v1 == rmax
-            state = state+[1,0,0,-state[4]]
+            state = state+[0,1,0,-state[4]]
             choice[:,t] = [1, 0, 0, 0]
         elseif v2 == rmax
-            state = state+[0,1,0,-state[4]]
+            state = state+[0,0,1,-state[4]]
             choice[:,t] = [0, 1, 0, 0]
         elseif v3 == rmax
             state = d3
@@ -111,4 +114,23 @@ function SimulateModel(T,st,N_ϵ,Emaxall)
     end
     stf[:,T] = state
     return stf, choice
+end
+
+function SimulateAll(N::Int64, T::Int64, N_ϵ::Array)
+    stateHistory = Array{Array{Int64}}(undef,N)
+    choiceHistory = Array{Array{Int64}}(undef,N)
+    for i = 1:N
+        stateHistory[i], choiceHistory[i] = SimulateModel(T,st,N_ϵ[i],Emaxall)
+    end
+    # Transforms output into DataFrame for easy handling
+    stateDF = stateHistory[1]
+    choiceDF = choiceHistory[1]
+    for i = 2:N
+        stateDF = hcat(stateDF, stateHistory[i])
+        choiceDF = hcat(choiceDF, choiceHistory[i])
+    end
+    period = repeat(collect(1:T),outer = N)
+    idx = repeat(collect(1:N), inner = T)
+    return df = DataFrame(idx = idx, period=period, school = stateDF[1,:], exp1 = stateDF[2,:], exp2 = stateDF[3,:],
+                school_c = choiceDF[3,:], work1 = choiceDF[1,:], work2 = choiceDF[2,:], home = choiceDF[4,:])
 end
