@@ -49,10 +49,10 @@ end
 # Combines both together
 function genEmaxAll(fEmax::Dict,Domain_set::Dict,Emaxall::Dict,epsilon::Array)
     for t = reverse(2:T-1)
-        fEmax = Emaxt(t, Domain_set,fEmax,epsilon)
+        println(t)
+        @time fEmax = Emaxt(t, Domain_set,fEmax,epsilon)
         tempDict = Dict(t => fEmax)
         Emaxall = merge(Emaxall,tempDict)
-        println(t)
     end
     return Emaxall
 end
