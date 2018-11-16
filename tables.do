@@ -27,7 +27,7 @@ tabstat avgs, by(period)
 tabstat avgh, by(period)
 
 
-foreach i in 1/3{
+foreach i in 1 2 3{
 	import delimited df`i'.csv, clear
 	
 	bysort period: egen avgs = mean(school_c)

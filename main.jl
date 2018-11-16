@@ -12,7 +12,7 @@ include("functions_alt.jl")
 
 N = 1000        #Number of people
 T = 40          #I start with t =1, the paper starts with t = 0
-S = 100000      #Number of MC draws
+S = 2000      #Number of MC draws
 
 param = 1       #which parameter set to use
 
@@ -32,7 +32,7 @@ MC_ϵ = rand(MvNormal(mu, sigma),S) #Take S draws from the Multivariate Normal
 # The notation of states is the following:
 # State Space S(t) = {s(t), x1(t), x2(t), d3(t-1)}
 
-st = [10,0,0,0] # Initial state at t=1
+st = [10,0,0,1] # Initial state at t=1
 
 # Generates a dictionary, where the key is the time t,
 # and the value is an Array of Arrays, with each array being a possible state point at that period
@@ -49,8 +49,7 @@ N_ϵ = Vector{Array{Float64,2}}(undef,N)
 for i = 1:N
     N_ϵ[i] = rand(MvNormal(mu, sigma),T)
 end
-
-df = SimulateAll(N, T, N_ϵ)
+df = SimulateAll(N, T, N_ϵ, Emaxall)
 
 
 df |> save("df$(param)_MC$S.csv")
