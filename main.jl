@@ -12,7 +12,7 @@ include("functions_alt.jl")
 
 N = 1000        #Number of people
 T = 40          #I start with t =1, the paper starts with t = 0
-S = 2000      #Number of MC draws
+S = 2000        #Number of MC draws
 
 param = 1       #which parameter set to use
 
@@ -27,7 +27,6 @@ sigma = [p.σ11^2 p.σ12 p.σ13 p.σ14;
 
 Random.seed!(123)
 MC_ϵ = rand(MvNormal(mu, sigma),S) #Take S draws from the Multivariate Normal
-
 
 # The notation of states is the following:
 # State Space S(t) = {s(t), x1(t), x2(t), d3(t-1)}
