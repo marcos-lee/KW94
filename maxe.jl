@@ -1,69 +1,67 @@
 # Calculates Emax at terminal period
-function maxET(epsilon::Array, Domain_set)
-    SST = Domain_set
+function maxET(SST::Array, MC_ϵ::Array)
     maxE = zeros(size(SST,1),1)
     vbar = zeros(size(SST,1),4)
     for i = 1:size(SST,1)
         state = SST[i]
-        r1 = mean(exp.(R1(state[1],state[2],state[3],epsilon[1,:])))
-        r2 = mean(exp.(R2(state[1],state[2],state[3],epsilon[2,:])))
+        r1 = mean(exp.(R1(state[1],state[2],state[3],MC_ϵ[1,:])))
+        r2 = mean(exp.(R2(state[1],state[2],state[3],MC_ϵ[2,:])))
         r3 = R3(state[1],state[4],0.0)
         r4 = R4(0.0)
         maxE[i] = max(r1, r2, r3, r4)
         vbar[i,:] = [r1 r2 r3 r4]
     end
-    fmaxE = Dict(zip(SST,maxE))
-    Ev1 = Dict(zip(SST,vbar[:,1]))
-    Ev2 = Dict(zip(SST,vbar[:,2]))
-    Ev3 = Dict(zip(SST,vbar[:,3]))
-    Ev4 = Dict(zip(SST,vbar[:,4]))
-    return fmaxE, Ev1, Ev2, Ev3, Ev4
+    fmaxE = OrderedDict(zip(SST,maxE))
+    fEv1 = OrderedDict(zip(SST,vbar[:,1]))
+    fEv2 = OrderedDict(zip(SST,vbar[:,2]))
+    fEv3 = OrderedDict(zip(SST,vbar[:,3]))
+    fEv4 = OrderedDict(zip(SST,vbar[:,4]))
+    return fmaxE, fEv1, fEv2, fEv3, fEv4
 end
 
 # Calculates Emax at t=2,...,T-1
-function maxEt(Domain_set::Array, Emaxall::Dict, epsilon::Array)
-    SST = Domain_set
-    maxE = zeros(size(SST,1),1)
-    vbar = zeros(size(SST,1),4)
-    for i = 1:size(SST,1)
-        state = SST[i]
+function maxEt(SSt::Array, fEmax::OrderedDict, MC_ϵ::Array)
+    maxE = zeros(size(SSt,1),1)
+    vbar = zeros(size(SSt,1),4)
+    for i = 1:size(SSt,1)
+        state = SSt[i]
         d3 = state + [1,0,0,1-state[4]]
         d3[1] = min(20,d3[1])
-        v1 = mean(exp.(R1(state[1],state[2],state[3],epsilon[1,:])) .+ p.β*Emaxall[state+[0,1,0,-state[4]]])
-        v2 = mean(exp.(R2(state[1],state[2],state[3],epsilon[2,:])) .+ p.β*Emaxall[state+[0,0,1,-state[4]]])
+        v1 = mean(exp.(R1(state[1],state[2],state[3],MC_ϵ[1,:])) .+ p.β*fEmax[state+[0,1,0,-state[4]]])
+        v2 = mean(exp.(R2(state[1],state[2],state[3],MC_ϵ[2,:])) .+ p.β*fEmax[state+[0,0,1,-state[4]]])
         if d3[1] < 20
-            v3 = R3(state[1],state[4],0.0) .+ p.β*Emaxall[d3]
+            v3 = R3(state[1],state[4],0.0) .+ p.β*fEmax[d3]
         else
             v3 = R3(state[1],state[4],0.0)
         end
-        v4 = R4(0.0) .+ p.β*Emaxall[state+[0,0,0,-state[4]]]
+        v4 = R4(0.0) .+ p.β*fEmax[state+[0,0,0,-state[4]]]
         maxE[i] = max(v1, v2, v3, v4)
         vbar[i,:] = [v1 v2 v3 v4]
     end
-    fmaxEt = Dict(zip(SST,maxE))
-    Ev1 = Dict(zip(SST,vbar[:,1]))
-    Ev2 = Dict(zip(SST,vbar[:,2]))
-    Ev3 = Dict(zip(SST,vbar[:,3]))
-    Ev4 = Dict(zip(SST,vbar[:,4]))
-    return fmaxEt, Ev1, Ev2, Ev3, Ev4
+    fmaxEt = OrderedDict(zip(SSt,maxE))
+    fEv1 = OrderedDict(zip(SSt,vbar[:,1]))
+    fEv2 = OrderedDict(zip(SSt,vbar[:,2]))
+    fEv3 = OrderedDict(zip(SSt,vbar[:,3]))
+    fEv4 = OrderedDict(zip(SSt,vbar[:,4]))
+    return fmaxEt, fEv1, fEv2, fEv3, fEv4
 end
 
 # Combines both together
-function genmaxEAll(Emaxall::Dict,Domain_set::Dict,epsilon::Array)
-    fmaxE, Ev1, Ev2, Ev3, Ev4 = maxET(T,MC_ϵ)
+function genmaxEAll(Emaxall::OrderedDict,Domain_set::OrderedDict,epsilon::Array)
+    fmaxE, fEv1, fEv2, fEv3, fEv4 = maxET(T,MC_ϵ)
     # Store it in a dictionary with key = t, value = Emax
-    maxEall = Dict(T => fmaxE)
-    Ev1all = Dict(T => Ev1)
-    Ev2all = Dict(T => Ev2)
-    Ev3all = Dict(T => Ev3)
-    Ev4all = Dict(T => Ev4)
+    maxEall = OrderedDict(T => fmaxE)
+    Ev1all = OrderedDict(T => fEv1)
+    Ev2all = OrderedDict(T => fEv2)
+    Ev3all = OrderedDict(T => fEv3)
+    Ev4all = OrderedDict(T => fEv4)
     for t = reverse(2:T-1)
-        fmaxE, Ev1, Ev2, Ev3, Ev4 = maxEt(Domain_set[t], Emaxall[t+1], MC_ϵ)
-        tempDict = Dict(t => fmaxE)
-        tempDict1 = Dict(t => Ev1)
-        tempDict2 = Dict(t => Ev2)
-        tempDict3 = Dict(t => Ev3)
-        tempDict4 = Dict(t => Ev4)
+        fmaxE, fEv1, fEv2, fEv3, fEv4 = maxEt(Domain_set[t], Emaxall[t+1], MC_ϵ)
+        tempDict = OrderedDict(t => fmaxE)
+        tempDict1 = OrderedDict(t => fEv1)
+        tempDict2 = OrderedDict(t => fEv2)
+        tempDict3 = OrderedDict(t => fEv3)
+        tempDict4 = OrderedDict(t => fEv4)
         maxEall = merge(maxEall,tempDict)
         Ev1all = merge(Ev1all,tempDict1)
         Ev2all = merge(Ev2all,tempDict2)
@@ -75,27 +73,41 @@ function genmaxEAll(Emaxall::Dict,Domain_set::Dict,epsilon::Array)
 end
 
 # auxiliary functions
-function createX(maxE, Ev1val, Ev2val, Ev3val, Ev4val)
-    x1 = maxE .- Ev1val
-    x2 = maxE .- Ev2val
-    #x3 = maxE .- Ev3val
-    x4 = maxE .- Ev4val
-    x5 = (maxE .- Ev1val).^0.5
-    x6 = (maxE .- Ev2val).^0.5
-    x7 = (maxE .- Ev3val).^0.5
-    x8 = (maxE .- Ev4val).^0.5
-    return x = [ones(size(maxE,1),1) x1 x2 x4 x5 x6 x7 x8]
+function createX(fmaxE::OrderedDict, fEv1::OrderedDict, fEv2::OrderedDict, fEv3::OrderedDict, fEv4::OrderedDict)
+    n = size(collect(values(fmaxE)),1)
+    x1 = collect(values(fmaxE)) .- collect(values(fEv1))
+    x2 = collect(values(fmaxE)) .- collect(values(fEv2))
+    #x3 = fmaxE .- Ev3
+    x4 = collect(values(fmaxE)) .- collect(values(fEv4))
+    x5 = (collect(values(fmaxE)) .- collect(values(fEv1))).^0.5
+    x6 = (collect(values(fmaxE)) .- collect(values(fEv2))).^0.5
+    x7 = (collect(values(fmaxE)) .- collect(values(fEv3))).^0.5
+    x8 = (collect(values(fmaxE)) .- collect(values(fEv4))).^0.5
+    x = [ones(n,1) x1 x2 x4 x5 x6 x7 x8]
+    return x
 end
+
 function OLS(y,x)
     β = (x'*x)^(-1) * (x' * y)
 end
 
+function genApproxDataT(Domain::Array, MC_ϵ::Array)
+    fmaxE, fEv1, fEv2, fEv3, fEv4 = maxET(Domain, MC_ϵ)
+    fEmax = EmaxT(Domain, MC_ϵ)
+    y = collect(values(fEmax)) .- collect(values(fmaxE))
+    x = createX(fmaxE, fEv1, fEv2, fEv3, fEv4)
+    βap = OLS(y,x)
+    return βap, fEmax
+end
+
 function ApproximateTerminal(ApproxS::Int64)
     rngDomain = sample(Domain_set[T], ApproxS; replace=false)
-    y, x, fEmax, maxE, Emax = genBothMax(rngDomain)
-    βap = OLS(y, x)
-    yf, xf, fEmaxTemp, maxEf, Emaxf, Ev1val, Ev2val, Ev3val, Ev4val = genBothMax(Domain_set[T])
-    yhat = xf*βap
+    βap, fEmaxS = genApproxDataT(rngDomain, MC_ϵ)
+    fmaxE, fEv1, fEv2, fEv3, fEv4 = maxET(Domain_set[T], MC_ϵ)
+    fEmax = EmaxT(Domain_set[T], MC_ϵ)
+    yfull = collect(values(fEmax)) .- collect(values(fmaxE))
+    xfull = createX(fmaxE, fEv1, fEv2, fEv3, fEv4)
+    yhat = xfull*βap
     for i = 1:size(yhat,1)
         if yhat[i] < 0
             yhat[i] = 0
@@ -103,94 +115,75 @@ function ApproximateTerminal(ApproxS::Int64)
             yhat[i] = yhat[i]
         end
     end
-    Emaxhat = yhat .+ maxEf
-    df = DataFrame(Emaxap = Emaxf, maxEap = maxEf,
-                Ev1val = Ev1val, Ev2val = Ev2val, Ev3val = Ev3val, Ev4val = Ev4val,
-                y=yf, yhat = yhat, Emaxhat = Emaxhat, test = Domain_set[T])
-    df |> save("df$(param)aprox.csv")
-    fEmaxhat = Dict(zip(Domain_set[T], Emaxhat))
-    return fEmaxhat, fEmax
+    Emaxhat = yhat .+ collect(values(fmaxE))
+    fEmaxhat = OrderedDict(zip(Domain_set[T], Emaxhat))
+    fEmaxhat = merge(fEmaxhat, fEmaxS)
+    Domain = collect(keys(fEmaxhat))
+    df = DataFrame(Emaxap = collect(values(fEmax)), maxEap = collect(values(fmaxE)), yf = yfull,
+                Ev1val = collect(values(fEv1)), Ev2val = collect(values(fEv2)), Ev3val = collect(values(fEv3)),
+                Ev4val = collect(values(fEv4)), yhat = yhat, Emaxhat = Emaxhat, test = Domain)
+    df |> save("output/df$(param)aprox.csv")
+    return fEmaxhat
     #return Emaxhat, fEmaxhat
 end
 
-function genBothMax(Domain::Array)
-    fEmax, tEmax = @timed EmaxT(T, MC_ϵ, Domain)
-    fmaxE, Ev1, Ev2, Ev3, Ev4 = maxET(MC_ϵ, Domain)
-    maxE = collect(values(fmaxE))
-    Emax = collect(values(fEmax))
-    Ev1val = collect(values(Ev1))
-    Ev2val = collect(values(Ev2))
-    Ev3val = collect(values(Ev3))
-    Ev4val = collect(values(Ev4))
-    y = Emax .- maxE
-    x = createX(maxE, Ev1val, Ev2val, Ev3val, Ev4val)
-    return y, x, fEmax, maxE, Emax, Ev1val, Ev2val, Ev3val, Ev4val
+function genApproxData(Domain::Array, MC_ϵ::Array, fEmaxhat::OrderedDict)
+    fmaxE, fEv1, fEv2, fEv3, fEv4 = maxEt(Domain, fEmaxhat, MC_ϵ)
+    fEmax = Emaxt(Domain, fEmaxhat, MC_ϵ)
+    y = collect(values(fEmax)) .- collect(values(fmaxE))
+    x = createX(fmaxE, fEv1, fEv2, fEv3, fEv4)
+    βap = OLS(y,x)
+    return βap, fEmax
 end
 
-function genBothMaxt(Domain::Array, Emaxallhat)
-    fEmax, tEmax = @timed Emaxt(Domain, Emaxallhat, MC_ϵ)
-    fmaxE, Ev1, Ev2, Ev3, Ev4 = maxEt(Domain, Emaxallhat, MC_ϵ)
-    maxE = collect(values(fmaxE))
-    Emax = collect(values(fEmax))
-    Ev1val = collect(values(Ev1))
-    Ev2val = collect(values(Ev2))
-    Ev3val = collect(values(Ev3))
-    Ev4val = collect(values(Ev4))
-    y = Emax .- maxE
-    x = createX(maxE, Ev1val, Ev2val, Ev3val, Ev4val)
-    return y, x, fEmax, maxE, Emax
-end
 
-function ApproximateOnce(ApproxS::Int64, Domain_set::Array, Emaxallhat::Dict)
-    rngDomain = sample(Domain_set, ApproxS; replace=false)
-    y, x, fEmax = genBothMaxt(rngDomain, Emaxallhat)
-    βap = OLS(y, x)
-    yf, xf, fEmaxTemp, maxEf, Emaxf = genBothMaxt(Domain_set, Emaxallhat)
-    yhat = xf*βap
-    for i = 1:size(yhat,1)
-        if yhat[i] < 0
-            yhat[i] = 0
-        else
-            yhat[i] = yhat[i]
+function ApproximateOnce(ApproxS::Int64, Domain::Array, fEmaxhat::OrderedDict)
+    rngDomain = sample(Domain, ApproxS; replace=false)
+    βap, fEmaxS = genApproxData(rngDomain, MC_ϵ, fEmaxhat)
+    fmaxE, fEv1, fEv2, fEv3, fEv4 = maxEt(Domain, fEmaxhat, MC_ϵ)
+    fEmax = EmaxT(Domain, MC_ϵ)
+    yfull = collect(values(fEmax)) .- collect(values(fmaxE))
+    xfull = createX(fmaxE, fEv1, fEv2, fEv3, fEv4)
+    yhat = xfull*βap
+    #for i = 1:size(yhat,1)
+    #    if yhat[i] < 0
+    #        yhat[i] = 0
+    #    else
+    #        yhat[i] = yhat[i]
+    #    end
+    #end
+    Emaxhat = yhat .+ collect(values(fmaxE))
+    for i = 1:size(Emaxhat,1)
+        if Emaxhat[i] < collect(values(fmaxE))[i]
+            Emaxhat[i] = collect(values(fmaxE))[i]
         end
     end
-    Emaxhat = yhat .+ maxEf
-    df = DataFrame(Emaxap = Emaxf, maxEap = maxEf,
-                y=yf, yhat = yhat, Emaxhat = Emaxhat, test = Domain_set)
-    df |> save("dfteste$(param)aprox.csv")
-    fEmaxhat = Dict(zip(Domain_set, Emaxhat))
-    return fEmaxhat, fEmax
-    #return fEmaxhat = merge(Dict(zip(Domain_set, Emaxhat)), fEmax)
+    fEmaxhat = OrderedDict(zip(Domain, Emaxhat))
+    fEmaxhat = merge(fEmaxhat, fEmaxS)
+    Domain = collect(keys(fEmaxhat))
+    df = DataFrame(Emaxap = collect(values(fEmax)), maxEap = collect(values(fmaxE)), yf = yfull,
+                Ev1val = collect(values(fEv1)), Ev2val = collect(values(fEv2)), Ev3val = collect(values(fEv3)),
+                Ev4val = collect(values(fEv4)), yhat = yhat, Emaxhat = Emaxhat, test = Domain)
+    df |> save("output/df39$(param)aprox.csv")
+    return fEmaxhat
 end
 
-
-# since I am working with dictionaries, and in Julia dictionary keys
-# are randomly ordered, if I want to compare the values from the OLS
-# approximation and thef full solution, I have to create them both again
-# so that the key orders are the same in both dictionaries
 
 import StatsBase.sample
 ApproxS = 2000
 st = [10,0,0,1] # Initial state at t=1
 
-fEmaxhat, fEmaxTemp = ApproximateTerminal(ApproxS)
-#fEmaxhat = merge(fEmaxhat, fEmaxTemp)
-#fEmaxhat = Dict(zip(Domain_set[T], Emaxhat))
-Emaxallhat = Dict(T => fEmaxhat)
-
-#t=39
-#fEmaxhat1, fEmax1 = ApproximateOnce(ApproxS, Domain_set[t], Emaxallhat[t+1])
-
-
+fEmaxhat = ApproximateTerminal(ApproxS)
+Emaxallhat = OrderedDict(T => fEmaxhat)
+#ApproximateOnce(ApproxS, Domain_set[t], Emaxallhat[t+1])
 for t = reverse(2:T-1)
     println(t)
     if size(Domain_set[t],1) >= ApproxS
-        fEmaxhat, fEmaxTemp = ApproximateOnce(ApproxS, Domain_set[t], Emaxallhat[t+1])
-        #fEmaxhat = merge(fEmaxhat, fEmaxTemp)
+        fEmaxhat = ApproximateOnce(ApproxS, Domain_set[t], Emaxallhat[t+1])
     else
         fEmaxhat = Emaxt(Domain_set[t], Emaxallhat[t+1], MC_ϵ)
     end
-    tempDict = Dict(t => fEmaxhat)
+    tempDict = OrderedDict(t => fEmaxhat)
     global Emaxallhat = merge(Emaxallhat,tempDict)
 end
 
@@ -198,22 +191,6 @@ end
 
 df1 = SimulateAll(N, T, N_ϵ, Emaxallhat)
 
-
 Ch1 = by(df1, :period) do x
     DataFrame(avgschool = mean(x.school_c), avgw1 = mean(x.work1), avgw2 = mean(x.work2), avghome = mean(x.home))
 end
-
-
-### EMAXALLHAT IS BUGGY, NOT STORING CORRECT INFORMATION
-
-
-#=
-#this is kind of awkward, maybe better to use DataFrames?
-maxE_Aprox = Dict()
-for i = keys(fEmax)
-  tempVal = get(fmaxE, i, -10000)
-  tempDict = Dict(zip([i], tempVal))
-  global maxE_Aprox = merge(maxE_Aprox, tempDict)
-end
-# to check there are no -10000, minimum(collect(values(maxE_Aprox)))
-=#

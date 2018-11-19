@@ -19,8 +19,8 @@ function R4(ϵ4)
 end
 
 # Calculates Emax at terminal period
-function EmaxT(T::Int64, MC_ϵ::Array, Domain_set::Array)
-    SST = Domain_set
+# SST = State Space at T
+function EmaxT(SST::Array, MC_ϵ::Array)
     Emax = zeros(size(SST,1),1)
     for i = 1:size(SST,1)
         state = SST[i]
@@ -30,11 +30,13 @@ function EmaxT(T::Int64, MC_ϵ::Array, Domain_set::Array)
         r4 = R4(MC_ϵ[4,:])
         Emax[i] = mean(max.(r1, r2, r3, r4))
     end
-    return fEmax = Dict(zip(SST,Emax))
+    return fEmax = OrderedDict(zip(SST,Emax))
 end
 
+
 # Calculates Emax at t=2,...,T-1
-function Emaxt(SSt::Array, fEmax::Dict, MC_ϵ::Array)
+# SSt = State Space at t
+function Emaxt(SSt::Array, fEmax::OrderedDict, MC_ϵ::Array)
     Emax = zeros(size(SSt,1),1)
     for i = 1:size(SSt,1)
         state = SSt[i]
@@ -42,31 +44,36 @@ function Emaxt(SSt::Array, fEmax::Dict, MC_ϵ::Array)
         d3[1] = min(20,d3[1])
         v1 = exp.(R1(state[1],state[2],state[3],MC_ϵ[1,:])) .+ p.β*fEmax[state+[0,1,0,-state[4]]]
         v2 = exp.(R2(state[1],state[2],state[3],MC_ϵ[2,:])) .+ p.β*fEmax[state+[0,0,1,-state[4]]]
-        v3 = R3(state[1],state[4],MC_ϵ[3,:]) .+ p.β*fEmax[d3]
+        if d3[1] < 20
+            v3 = R3(state[1],state[4],MC_ϵ[3,:]) .+ p.β*fEmax[d3]
+        else
+            v3 = R3(state[1],state[4],MC_ϵ[3,:])
+        end
         v4 = R4(MC_ϵ[4,:]) .+ p.β*fEmax[state+[0,0,0,-state[4]]]
         Emax[i] = mean(max.(v1, v2, v3, v4))
     end
-    return fEmaxt = Dict(zip(SSt,Emax))
+    return fEmaxt = OrderedDict(zip(SSt,Emax))
 end
+
 # Combines both together
-function genEmaxAll(Domain_set::Dict, MC_ϵ::Array, T)
+function genEmaxAll(Domain_set::OrderedDict, MC_ϵ::Array, T)
     println(T)
-    @time fEmax, tEmax = @timed EmaxT(T,MC_ϵ, Domain_set[T])
-    Emaxall = Dict(T => fEmax)
+    @time fEmax, tEmax = @timed EmaxT(Domain_set[T], MC_ϵ)
+    Emaxall = OrderedDict(T => fEmax)
     timeEmax = Array{Float64}(undef, 40, 2)
     timeEmax[40,:] = [40 tEmax]
     for t = reverse(2:T-1)
         println(t)
         @time fEmax, tEmax = @timed Emaxt(Domain_set[t], fEmax, MC_ϵ)
         timeEmax[t,:] = [t tEmax]
-        tempDict = Dict(t => fEmax)
+        tempDict = OrderedDict(t => fEmax)
         Emaxall = merge(Emaxall,tempDict)
     end
     return Emaxall, timeEmax
 end
 
 # Simulates one person in the model
-function SimulateModel(T,st,N_ϵ,Emaxall)
+function SimulateModel(T, st, N_ϵ, Emaxall::OrderedDict)
     choice = Array{Int64}(undef, 4, 40)
     stf = Array{Int64}(undef, 4, 40)
     state = st
@@ -116,11 +123,11 @@ function SimulateModel(T,st,N_ϵ,Emaxall)
     return stf, choice
 end
 
-function SimulateAll(N::Int64, T::Int64, N_ϵ::Array, Emaxall::Dict)
+function SimulateAll(N::Int64, T::Int64, N_ϵ::Array, Emax::OrderedDict)
     stateHistory = Array{Array{Int64}}(undef,N)
     choiceHistory = Array{Array{Int64}}(undef,N)
     for i = 1:N
-        stateHistory[i], choiceHistory[i] = SimulateModel(T,st,N_ϵ[i],Emaxall)
+        stateHistory[i], choiceHistory[i] = SimulateModel(T, st, N_ϵ[i], Emax)
     end
     # Transforms output into DataFrame for easy handling
     stateDF = stateHistory[1]

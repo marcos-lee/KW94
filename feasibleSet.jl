@@ -37,7 +37,7 @@ function StateSpace(st::Vector{Int64}, T::Int64)
     # Second: Work at 1
     # Third: Work at 2
     # Stay at home
-    Domain_set = Dict{Int64,Vector}()
+    Domain_set = OrderedDict{Int64,Vector}()
     Domain_set[1] = st
     D = Vector{Vector{Int64}}(undef,0)
     Domain_set[2] = vcat(feasibleSet(st),D)
