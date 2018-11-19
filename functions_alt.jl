@@ -106,7 +106,7 @@ function SimulateModel(T,st,N_ϵ,Emaxall)
         state = state+[0,0,1,-state[4]]
         choice[:,T] = [0, 1, 0, 0]
     elseif r3 == rmax
-        d3 = state + [1,0,0,1-state[4]]
+        state = state + [1,0,0,1-state[4]]
         choice[:,T] = [0, 0, 1, 0]
     elseif r4 == rmax
         state = state + [0,0,0,-state[4]]
