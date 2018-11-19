@@ -78,45 +78,51 @@ function SimulateModel(T, st, N_ϵ, Emaxall::OrderedDict)
     stf = Array{Int64}(undef, 4, 40)
     state = st
     for t = 1:T-1
-        d3 = state + [1,0,0,1-state[4]]
-        d3[1] = min(20,d3[1])
-        v1 = exp.(R1(state[1],state[2],state[3],N_ϵ[1,t])) .+ p.β*Emaxall[t+1][state+[0,1,0,-state[4]]]
-        v2 = exp.(R2(state[1],state[2],state[3],N_ϵ[2,t])) .+ p.β*Emaxall[t+1][state+[0,0,1,-state[4]]]
-        v3 = R3(state[1],state[4],N_ϵ[3,t]) .+ p.β*Emaxall[t+1][d3]
-        v4 = R4(N_ϵ[4,t]) .+ p.β*Emaxall[t+1][state+[0,0,0,-state[4]]]
+        nxtstate = feasibleSet(state)
+        if state[1] == 20
+            pushfirst!(nxtstate, state)
+        end
+        v1 = exp.(R1(state[1],state[2],state[3],N_ϵ[1,t])) .+ p.β*Emaxall[t+1][nxtstate[2]]
+        v2 = exp.(R2(state[1],state[2],state[3],N_ϵ[2,t])) .+ p.β*Emaxall[t+1][nxtstate[3]]
+        v3 = R3(state[1],state[4],N_ϵ[3,t]) .+ p.β*Emaxall[t+1][nxtstate[1]]
+        v4 = R4(N_ϵ[4,t]) .+ p.β*Emaxall[t+1][nxtstate[4]]
         rmax = max(v1,v2,v3,v4)
         if v1 == rmax
-            state = state+[0,1,0,-state[4]]
+            state = nxtstate[2]
             choice[:,t] = [1, 0, 0, 0]
         elseif v2 == rmax
-            state = state+[0,0,1,-state[4]]
+            state = nxtstate[3]
             choice[:,t] = [0, 1, 0, 0]
         elseif v3 == rmax
-            state = d3
+            state = nxtstate[1]
             choice[:,t] = [0, 0, 1, 0]
         elseif v4 == rmax
-            state = state + [0,0,0,-state[4]]
+            state = nxtstate[4]
             choice[:,t] = [0, 0, 0, 1]
         end
         stf[:,t] = state
     end
     state = stf[:,T-1]
+    nxtstate = feasibleSet(state)
+    if state[1] == 20
+        pushfirst!(nxtstate, state)
+    end
     r1 = exp.(R1(state[1],state[2],state[3],N_ϵ[1,T]))
     r2 = exp.(R2(state[1],state[2],state[3],N_ϵ[2,T]))
     r3 = R3(state[1],state[4],N_ϵ[3,T])
     r4 = R4(N_ϵ[4,T])
     rmax = max(r1,r2,r3,r4)
     if r1 == rmax
-        state = state+[0,1,0,-state[4]]
+        state = nxtstate[2]
         choice[:,T] = [1, 0, 0, 0]
     elseif r2 == rmax
-        state = state+[0,0,1,-state[4]]
+        state = nxtstate[3]
         choice[:,T] = [0, 1, 0, 0]
     elseif r3 == rmax
         state = state + [1,0,0,1-state[4]]
         choice[:,T] = [0, 0, 1, 0]
     elseif r4 == rmax
-        state = state + [0,0,0,-state[4]]
+        state = nxtstate[4]
         choice[:,T] = [0, 0, 0, 1]
     end
     stf[:,T] = state

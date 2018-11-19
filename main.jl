@@ -14,7 +14,7 @@ include("functions_alt.jl")
 
 N = 1000        #Number of people
 T = 40          #I start with t =1, the paper starts with t = 0
-S = 2000      #Number of MC draws
+S = 2000        #Number of MC draws
 
 param = 1       #which parameter set to use
 
