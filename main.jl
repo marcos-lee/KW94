@@ -4,6 +4,8 @@ using LinearAlgebra
 using CSVFiles
 using DataFrames
 using DelimitedFiles
+import DataStructures.OrderedDict
+
 
 include("feasibleSet.jl")
 #include("functions.jl")
@@ -25,7 +27,7 @@ sigma = [p.σ11^2 p.σ12 p.σ13 p.σ14;
         p.σ13 p.σ23 p.σ33^2 p.σ34;
         p.σ14 p.σ24 p.σ34 p.σ44^2]
 
-Random.seed!(123)
+#Random.seed!(1)
 MC_ϵ = rand(MvNormal(mu, sigma),S) #Take S draws from the Multivariate Normal
 
 # The notation of states is the following:
@@ -40,7 +42,7 @@ st = [10,0,0,1] # Initial state at t=1
 # Full solution of the model:
 @time Emaxall, timeEmax = genEmaxAll(Domain_set,MC_ϵ, T)
 #about 11-12 minutes
-writedlm("timeEmax$(param)_MC$S.txt", timeEmax)
+writedlm("output/timeEmax$(param)_MC$S.txt", timeEmax)
 ##########################################################################
 
 # Simulate the model for N people
@@ -51,7 +53,7 @@ end
 df = SimulateAll(N, T, N_ϵ, Emaxall)
 
 
-df |> save("df$(param)_MC$S.csv")
+df |> save("output/df$(param)_MC$S.csv")
 
 
 
