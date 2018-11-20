@@ -15,29 +15,39 @@ gen home = 0
 replace home = 1 if choice == 4
 
 
-bysort period: egen avgs = mean(school_c)
-bysort period: egen avgw1 = mean(work1)
-bysort period: egen avgw2 = mean(work2)
-bysort period: egen avgh = mean(home)
+preserve
+collapse school_c work1 work2 home, by(period)
+keep if period == 1 | period == 10 | period == 20 | period == 30 | period == 40
+tabstat school_c, by(period)
+tabstat work1, by(period)
+tabstat work2, by(period)
+tabstat home, by(period)
+restore
 
-
-tabstat avgw1, by(period)
-tabstat avgw2, by(period)
-tabstat avgs, by(period)
-tabstat avgh, by(period)
-
-
-foreach i in 1 2 3{
-	import delimited df`i'.csv, clear
+foreach i in 100000 2000 1000 250{
+	import delimited output\df1_MC`i'.csv, clear
 	
-	bysort period: egen avgs = mean(school_c)
-	bysort period: egen avgw1 = mean(work1)
-	bysort period: egen avgw2 = mean(work2)
-	bysort period: egen avgh = mean(home)
-
-
-	tabstat avgw1, by(period)
-	tabstat avgw2, by(period)
-	tabstat avgs, by(period)
-	tabstat avgh, by(period)
+preserve
+collapse school_c work1 work2 home, by(period)
+keep if period == 1 | period == 10 | period == 20 | period == 30 | period == 40
+tabstat school_c, by(period)
+tabstat work1, by(period)
+tabstat work2, by(period)
+tabstat home, by(period)
+restore
 }
+
+
+foreach i in 2000 500{
+	import delimited output\df1_MC2000_S`i'.csv, clear
+	
+preserve
+collapse school_c work1 work2 home, by(period)
+keep if period == 1 | period == 10 | period == 20 | period == 30 | period == 40
+tabstat school_c, by(period)
+tabstat work1, by(period)
+tabstat work2, by(period)
+tabstat home, by(period)
+restore
+}
+
