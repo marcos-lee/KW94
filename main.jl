@@ -37,8 +37,13 @@ import StatsBase.sample
 # and the value is an Array of Arrays, with each array being a possible state point at that period
 @time Domain_set, tStateSpace = @timed StateSpace(st, T)
 
+mu = [0, 0, 0, 0] #Mean of ϵ
+sigma = [p.σ11^2 p.σ12 p.σ13 p.σ14;
+        p.σ12 p.σ22^2 p.σ23 p.σ24;
+        p.σ13 p.σ23 p.σ33^2 p.σ34;
+        p.σ14 p.σ24 p.σ34 p.σ44^2]
 
-Random.seed!(10)
+Random.seed!(3277)
 N_ϵ = Vector{Array{Float64,2}}(undef,N)
 for i = 1:N
     N_ϵ[i] = rand(MvNormal(mu, sigma),T)
@@ -48,26 +53,33 @@ end
 
 iter = [100000 2000 1000 250]
 iter2 = [2000 500]
-for i = iter
-    println("\n Solving for MC draws = $i \n")
-    global MC = i
-    mu = [0, 0, 0, 0] #Mean of ϵ
-    sigma = [p.σ11^2 p.σ12 p.σ13 p.σ14;
-            p.σ12 p.σ22^2 p.σ23 p.σ24;
-            p.σ13 p.σ23 p.σ33^2 p.σ34;
-            p.σ14 p.σ24 p.σ34 p.σ44^2]
 
-    Random.seed!(10)
-    MC_ϵ = rand(MvNormal(mu, sigma),MC) #Take S draws from the Multivariate Normal
-    benchDraws(MC_ϵ, Domain_set)
-    if i == 2000
-        for j = iter2
-            println("\n Approximating for $j state points\n")
-            global ApproxS = j
-            benchApprox(MC_ϵ, Domain_set, ApproxS)
+createAll(iter,iter2)
+
+
+function createAll(iter, iter2)
+    for i = iter
+        println("\n Solving for MC draws = $i \n")
+        global MC = i
+
+        Random.seed!(4571)
+        MC_ϵ = rand(MvNormal(mu, sigma),MC) #Take S draws from the Multivariate Normal
+        benchDraws(MC_ϵ, Domain_set)
+        if i == 2000
+            for j = iter2
+                println("\n Approximating for $j state points\n")
+                global ApproxS = j
+                benchApprox(MC_ϵ, Domain_set, ApproxS)
+            end
         end
     end
 end
+
+
+
+
+
+
 
 
 #Old version

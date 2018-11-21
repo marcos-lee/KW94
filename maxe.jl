@@ -164,7 +164,7 @@ function genEmaxAllHat(Domain_set::OrderedDict, ApproxS::Int64)
     @time fEmaxhat, tEmaxhat= @timed ApproximateTerminal(ApproxS)
     Emaxallhat = OrderedDict(T => fEmaxhat)
     timeEmaxhat = Array{Float64}(undef, 39, 2)
-    timeEmaxhat[39,:] = [40 tEmaxhat]
+    timeEmaxhat[3,:] = [40 tEmaxhat]
     for t = reverse(2:T-1)
         println("== Iteration t=$t ==\n")
         if size(Domain_set[t],1) >= ApproxS
