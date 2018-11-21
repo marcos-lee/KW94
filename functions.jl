@@ -143,3 +143,22 @@ function SimulateAll(N::Int64, T::Int64, N_ϵ::Array, Emax::OrderedDict)
     return df = DataFrame(idx = idx, period=period, school = stateDF[1,:], exp1 = stateDF[2,:], exp2 = stateDF[3,:],
                 school_c = choiceDF[3,:], work1 = choiceDF[1,:], work2 = choiceDF[2,:], home = choiceDF[4,:])
 end
+
+
+function benchDraws(MC_ϵ, Domain_set)
+    @time Emaxall, timeEmax = genEmaxAll(Domain_set,MC_ϵ, T)
+    #about 11-12 minutes when using 100k MC draws
+    writedlm("output/timeEmax$(param)_MC$MC.txt", timeEmax)
+    ##########################################################################
+    # Simulate the model for N people
+    df = SimulateAll(N, T, N_ϵ, Emaxall)
+    df |> save("output/df$(param)_MC$MC.csv")
+end
+
+function benchApprox(MC_ϵ, Domain_set, ApproxS)
+    @time Emaxallhat, timeEmaxhat = genEmaxAllHat(Domain_set, ApproxS)
+    writedlm("output/timeEmaxhat$(param)_MC$(MC)_S$(ApproxS).txt", timeEmaxhat)
+    # simulates the model using the same draws from the distribution of errors
+    df1 = SimulateAll(N, T, N_ϵ, Emaxallhat)
+    df1 |> save("output/df$(param)_MC$(MC)_S$(ApproxS).csv")
+end
