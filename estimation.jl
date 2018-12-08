@@ -58,20 +58,15 @@ end
 #########################################################
 #garbage
 
-@time mini2 = optimize(wrapll, Optim.minimizer(mini1), Optim.Options(store_trace = true,show_trace=true))
+@time mini = optimize(wrapll, Optim.minimizer(mini), Optim.Options(store_trace = true,show_trace=true))
 
-θ = a["mini1"].minimizer
 
-func = TwiceDifferentiable(wrapll, θ1; autodiff = :forward)
-@time mini = optimize(func, θ1, Newton(), Optim.Options(store_trace = true,show_trace=true))
+func = TwiceDifferentiable(wrapll, θ, autodiff = :forward)
+@time mini = optimize(func, θ, Newton(), Optim.Options(store_trace = true,show_trace=true))
 #17hours
 
-using JLD
-
-save("minimization1.jld", "mini1", mini1)
-θ1 = Optim.minimizer(mini1)
-func2 = TwiceDifferentiable(wrapll, θ1; autodiff = :forward)
-@time mini2 = optimize(func2, θ1, Newton(), Optim.Options(store_trace = true,show_trace=true))
+func1 = OnceDifferentiable(wrapll, θ; autodiff = :forward)
+@time mini1 = optimize(func1, θ, LBFGS(), Optim.Options(store_trace = true,show_trace=true))
 
 using Pkg
 Pkg.add("LineSearches")

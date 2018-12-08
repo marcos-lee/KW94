@@ -1,0 +1,28 @@
+Results of Optimization Algorithm
+ * Algorithm: L-BFGS
+ * Starting Point: [9.21,0.038, ...]
+ * Minimizer: [9.209981368678601,0.03800755674478177, ...]
+ * Minimum: 9.823661e+02
+ * Iterations: 1000
+ * Convergence: false
+   * |x - x'| ≤ 0.0e+00: false
+     |x - x'| = 2.86e-07
+   * |f(x) - f(x')| ≤ 0.0e+00 |f(x)|: false
+     |f(x) - f(x')| = 4.93e-09 |f(x)|
+   * |g(x)| ≤ 1.0e-08: false
+     |g(x)| = 4.66e+03
+   * Stopped by an increasing objective: false
+   * Reached Maximum Number of Iterations: true
+ * Objective Calls: 1536
+ * Gradient Calls: 1001
+
+
+
+([9.20998, 0.0380076, 0.0329473, 0.000515866, 6.94422e-5, 5.17774e-6],
+ [8.47999, 0.0700069, 0.0669527, 0.00100772, 0.0220228, 0.000487425],
+ [1.17804e-9, 2.16739e-9, 4000.0],
+ 17749.99999999982,
+ [0.200002 0.0 0.0 0.0;
+ 0.000147112 0.25 0.0 0.0;
+ -7.47318e-9 2.20679e-10 1499.98 0.0;
+ -1.23578e-8 -1.63813e-9 7.89448e-10 1500.03])
