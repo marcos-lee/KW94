@@ -62,8 +62,8 @@ function genEmaxAll(Domain_set::OrderedDict, MC_ϵ::Array, T)
     println("== Iteration t=$T ==\n")
     @time fEmax, tEmax = @timed EmaxT(Domain_set[T], MC_ϵ)
     Emaxall = OrderedDict(T => fEmax)
-    timeEmax = Array{Float64}(undef, 39, 2)
-    timeEmax[39,:] = [40 tEmax]
+    timeEmax = Array{Float64}(undef, T-1, 2)
+    timeEmax[T-1,:] = [T tEmax]
     for t = reverse(2:T-1)
         println("== Iteration t=$t ==\n")
         @time fEmax, tEmax = @timed Emaxt(Domain_set[t], fEmax, MC_ϵ)
@@ -76,10 +76,12 @@ end
 
 # Simulates one person in the model
 function SimulateModel(T, st, N_ϵ, Emaxall::OrderedDict)
-    choice = Array{Int64}(undef, 4, 40)
-    stf = Array{Int64}(undef, 4, 40)
+    choice = Array{Int64}(undef, 4, T)
+    stf = Array{Int64}(undef, 4, T)
     state = st
+    wage =  Array{Float64}(undef, T)
     for t = 1:T-1
+        stf[:,t] = state
         d3 = state + [1,0,0,1-state[4]]
         d3[1] = min(20,d3[1])
         v1 = exp.(R1(state[1],state[2],state[3],N_ϵ[1,t])) .+ p.β*Emaxall[t+1][state+[0,1,0,-state[4]]]
@@ -88,60 +90,70 @@ function SimulateModel(T, st, N_ϵ, Emaxall::OrderedDict)
         v4 = R4(N_ϵ[4,t]) .+ p.β*Emaxall[t+1][state+[0,0,0,-state[4]]]
         rmax = max(v1,v2,v3,v4)
         if v1 == rmax
+            wage[t] = exp.(R1(state[1],state[2],state[3],N_ϵ[1,t]))
             state = state + [0,1,0,-state[4]]
             choice[:,t] = [1, 0, 0, 0]
         elseif v2 == rmax
+            wage[t] = exp.(R2(state[1],state[2],state[3],N_ϵ[2,t]))
             state = state + [0,0,1,-state[4]]
             choice[:,t] = [0, 1, 0, 0]
         elseif v3 == rmax
+            wage[t] = R3(state[1],state[4],N_ϵ[3,t])
             state = d3
             choice[:,t] = [0, 0, 1, 0]
         elseif v4 == rmax
+            wage[t] = R4(N_ϵ[4,t])
             state = state + [0,0,0,-state[4]]
             choice[:,t] = [0, 0, 0, 1]
         end
-        stf[:,t] = state
     end
-    state = stf[:,T-1]
+    stf[:,T] = state
     r1 = exp.(R1(state[1],state[2],state[3],N_ϵ[1,T]))
     r2 = exp.(R2(state[1],state[2],state[3],N_ϵ[2,T]))
     r3 = R3(state[1],state[4],N_ϵ[3,T])
     r4 = R4(N_ϵ[4,T])
     rmax = max(r1,r2,r3,r4)
     if r1 == rmax
+        wage[T] = exp.(R1(state[1],state[2],state[3],N_ϵ[1,T]))
         state = state + [0,1,0,-state[4]]
         choice[:,T] = [1, 0, 0, 0]
     elseif r2 == rmax
+        wage[T] = exp.(R2(state[1],state[2],state[3],N_ϵ[2,T]))
         state = state + [0,0,1,-state[4]]
         choice[:,T] = [0, 1, 0, 0]
     elseif r3 == rmax
+        wage[T] = R3(state[1],state[4],N_ϵ[3,T])
         state = state + [1,0,0,1-state[4]]
         choice[:,T] = [0, 0, 1, 0]
     elseif r4 == rmax
+        wage[T] = R4(N_ϵ[4,T])
         state = state + [0,0,0,-state[4]]
         choice[:,T] = [0, 0, 0, 1]
     end
-    stf[:,T] = state
-    return stf, choice
+    return stf, choice, wage
 end
 
 function SimulateAll(N::Int64, T::Int64, N_ϵ::Array, Emax::OrderedDict)
     stateHistory = Array{Array{Int64}}(undef,N)
     choiceHistory = Array{Array{Int64}}(undef,N)
+    wageHistory = Array{Float64}(undef,N, T)
+    st = [10, 0, 0, 1]
     for i = 1:N
-        stateHistory[i], choiceHistory[i] = SimulateModel(T, st, N_ϵ[i], Emax)
+        stateHistory[i], choiceHistory[i], wageHistory[i,:] = SimulateModel(T, st, N_ϵ[i], Emax)
     end
     # Transforms output into DataFrame for easy handling
     stateDF = stateHistory[1]
     choiceDF = choiceHistory[1]
+    wageDF = wageHistory[1, :]
     for i = 2:N
         stateDF = hcat(stateDF, stateHistory[i])
         choiceDF = hcat(choiceDF, choiceHistory[i])
+        wageDF = vcat(wageDF, wageHistory[i,:])
     end
     period = repeat(collect(1:T),outer = N)
     idx = repeat(collect(1:N), inner = T)
-    return df = DataFrame(idx = idx, period=period, school = stateDF[1,:], exp1 = stateDF[2,:], exp2 = stateDF[3,:],
-                school_c = choiceDF[3,:], work1 = choiceDF[1,:], work2 = choiceDF[2,:], home = choiceDF[4,:])
+    return df = DataFrame(idx = idx, period=period, educ = stateDF[1,:], work1 = stateDF[2,:], work2 = stateDF[3,:], lag = stateDF[4,:],
+                school_c = choiceDF[3,:], work1c = choiceDF[1,:], work2c = choiceDF[2,:], home = choiceDF[4,:], wage = wageDF)
 end
 
 

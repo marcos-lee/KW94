@@ -88,12 +88,13 @@ end
 function likelihood(df::DataFrame, Draws::Array, Domain_set::OrderedDict, lambda::Float64, θ::Array)
     α1, α2, β, γ0, L = unpack(θ)
     MC_ϵ = Array{eltype(α1)}(undef, 4, size(Draws)[2])
-    MC_ϵ[1,:] = Draws[1,:] .* L[1,1]
-    MC_ϵ[2,:] = Draws[1,:] .* L[2,1] .+ Draws[2,:] .* L[2,2]
-    MC_ϵ[3,:] = Draws[1,:] .* L[3,1] .+ Draws[2,:] .* L[3,2] .+ Draws[3,:] .* L[3,3]
-    MC_ϵ[4,:] = Draws[1,:] .* L[4,1] .+ Draws[2,:] .* L[4,2] .+ Draws[3,:] .* L[4,3] .+ Draws[4,:] .* L[4,4]
+    #MC_ϵ[1,:] = Draws[1,:] .* L[1,1]
+    #MC_ϵ[2,:] = Draws[1,:] .* L[2,1] .+ Draws[2,:] .* L[2,2]
+    #MC_ϵ[3,:] = Draws[1,:] .* L[3,1] .+ Draws[2,:] .* L[3,2] .+ Draws[3,:] .* L[3,3]
+    #MC_ϵ[4,:] = Draws[1,:] .* L[4,1] .+ Draws[2,:] .* L[4,2] .+ Draws[3,:] .* L[4,3] .+ Draws[4,:] .* L[4,4]
+    MC_ϵ = L * Draws
     Emaxall = genEmaxAll(Domain_set,MC_ϵ, T, α1, α2, β, γ0)
-    tempdf = df[df.period .== 40,:]
+    tempdf = df[df.period .== T,:]
     fstate = [tempdf.educ tempdf.work1 tempdf.work2 tempdf.lag]
     probT = llcontribT(fstate, tempdf.wage, tempdf.choice, MC_ϵ, lambda, α1, α2, β, γ0, L)
     probt = Array{eltype(α1)}(undef, maximum(df.id), T-1)
@@ -108,7 +109,6 @@ function likelihood(df::DataFrame, Draws::Array, Domain_set::OrderedDict, lambda
     #show(L)
     ll = -sum(log.(prob))
 end
-
 function llcontrib(fstate::Array{Int64,2}, wage::Array{Float64,1}, fchoice::Array{Int64,1}, MC_ϵ::Array, fEmax::OrderedDict, lambda::Float64, α1::Array, α2::Array, β::Array, γ0, L::Array)
     prob = Array{eltype(α1)}(undef,size(wage)[1])
     for i = 1:size(wage)[1]

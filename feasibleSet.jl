@@ -1,11 +1,11 @@
 #Julia 1.0.2
-function feasibleSet(st::Vector{Int64})
+function feasibleSet(st::Vector{Int64}, T)
     up = Vector{Vector{Int64}}(undef,4)
     up[1] = [1,0,0,0]
     up[2] = [0,1,0,0]
     up[3] = [0,0,1,0]
     up[4] = [0,0,0,0]
-    if sum([st[1] st[2] st[3]]) < 50
+    if sum([st[1] st[2] st[3]]) < T + 10
         if st[1] < 20
             output = Vector{Vector{Int64}}(undef,4)
             for i=1:4
@@ -43,7 +43,7 @@ function StateSpace(st::Vector{Int64}, T::Int64)
     for t = 2:T-1
         D = Vector{Vector{Int64}}(undef,0)
         for i in Domain_set[t]
-            D = vcat(feasibleSet(i),D)
+            D = vcat(feasibleSet(i, T),D)
         end
         Domain_set[t+1] = unique(D)
     end

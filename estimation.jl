@@ -11,11 +11,12 @@ include("feasibleSet.jl")
 include("estimation_functions.jl") #Smoothed AR
 #include("estimation_approx.jl")
 
-T = 40          #I start with t =1, the paper starts with t = 0
-MC = 50
+T = 10          #I start with t =1, the paper starts with t = 0
+N = 100
+MC = 2000
 
 # use true parameters as guess to test
-param = 1       #which parameter set to use
+param = 4       #which parameter set to use
 
 # Change to Parameter1.jl, Parameter2.jl or Parameters3.jl to use another set of parameters
 include("Parameters$param.jl")
@@ -42,7 +43,22 @@ LT[2,1], LT[3,1], LT[4,1], LT[3,2], LT[4,2], LT[4,3]]
 Random.seed!(4)
 Draws = rand(MvNormal(zeros(4), Matrix{Float64}(I, 4, 4)),MC)
 
-df = DataFrame(load("kw94.csv"))
+#df = DataFrame(load("kw94.csv"))
+df = DataFrame(load("output/df4_MC100000.csv"))
+
+df.choice = Array{Int64}(undef, size(df,1))
+for i = 1:size(df,1)
+        if df.school_c[i] == 1
+                df.choice[i] = 3
+        elseif df.work1c[i] == 1
+                df.choice[i] = 1
+        elseif df.work2c[i] == 1
+                df.choice[i] = 2
+        else
+                df.choice[i] = 4
+        end
+end
+df.id = df.idx
 
 ApproxS = 200
 lambda = 0.5
@@ -74,7 +90,17 @@ using LineSearches
 
 func3 = TwiceDifferentiable(wrapll, θ; autodiff = :forward)
 @time mini3 = optimize(func3, θ, Newton(;alphaguess = LineSearches.InitialStatic(), linesearch = LineSearches.MoreThuente()), Optim.Options(store_trace = true,show_trace=true))
+
+θ1 = θ .- 0.5 .* rand(26) .- 0.25
 func4 = OnceDifferentiable(wrapll, θ1; autodiff = :forward)
-@time mini4 = optimize(func4, θ1, LBFGS(;linesearch = BackTracking(order=2)), Optim.Options(store_trace = true,show_trace=true))
+@time mini4 = optimize(func4, θ1, LBFGS(;linesearch = BackTracking()), Optim.Options(store_trace = true,show_trace=true))
+
+func3 = TwiceDifferentiable(wrapll, θ; autodiff = :forward)
+@time mini3 = optimize(func3, θ, Newton(;alphaguess = LineSearches.InitialStatic(), linesearch = LineSearches.MoreThuente()), Optim.Options(store_trace = true,show_trace=true))
+
+@time mini5 = optimize(func4, θ1, Optim.Options(store_trace = true,show_trace=true))
 
 save("minimization2.jld", "mini2")
+
+Optim.minimizer(mini4)
+Optim.minimizer(mini4) .- θ

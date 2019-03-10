@@ -163,8 +163,8 @@ function genEmaxAllHat(Domain_set::OrderedDict, ApproxS::Int64)
     println("== Iteration t=$T ==\n")
     @time fEmaxhat, tEmaxhat= @timed ApproximateTerminal(ApproxS)
     Emaxallhat = OrderedDict(T => fEmaxhat)
-    timeEmaxhat = Array{Float64}(undef, 39, 2)
-    timeEmaxhat[3,:] = [40 tEmaxhat]
+    timeEmaxhat = Array{Float64}(undef, T-1, 2)
+    timeEmaxhat[T-1,:] = [T tEmaxhat]
     for t = reverse(2:T-1)
         println("== Iteration t=$t ==\n")
         if size(Domain_set[t],1) >= ApproxS

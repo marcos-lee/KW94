@@ -4,6 +4,8 @@ using LinearAlgebra
 using CSVFiles
 using DataFrames
 using DelimitedFiles
+using Optim
+
 
 # This code heavily relies on Dictionaries. In Julia (and maybe elsewhere)
 # dictionary entries are randomly ordered. In the full solution problem,
@@ -19,11 +21,11 @@ include("feasibleSet.jl")
 include("functions.jl")
 
 
-N = 1000        #Number of people
-T = 40          #I start with t =1, the paper starts with t = 0
+N = 100        #Number of people
+T = 10          #I start with t =1, the paper starts with t = 0
 #MC = 1000     #Number of MC draws
 
-param = 1       #which parameter set to use
+param = 4       #which parameter set to use
 
 # Change to Parameter1.jl, Parameter2.jl or Parameters3.jl to use another set of parameters
 include("Parameters$param.jl")
@@ -54,16 +56,12 @@ end
 iter = [100000 2000 1000 250]
 iter2 = [2000 500]
 
-createAll(iter,iter2)
-
-
 function createAll(iter, iter2)
     for i = iter
         println("\n Solving for MC draws = $i \n")
         global MC = i
-
-        Random.seed!(4571)
-        MC_ϵ = rand(MvNormal(mu, sigma),MC) #Take S draws from the Multivariate Normal
+        Random.seed!(4)
+        global MC_ϵ = rand(MvNormal(mu, sigma),MC) #Take S draws from the Multivariate Normal
         benchDraws(MC_ϵ, Domain_set)
         if i == 2000
             for j = iter2
@@ -74,6 +72,10 @@ function createAll(iter, iter2)
         end
     end
 end
+
+
+createAll(iter,iter2)
+
 
 
 
