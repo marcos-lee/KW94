@@ -60,13 +60,13 @@ function genEmaxAll(Domain_set::OrderedDict, MC_ϵ::Array, T)
     println("\n Backward induction \n")
     println("\n Solving Exact Model \n")
     println("== Iteration t=$T ==\n")
-    @time fEmax, tEmax = @timed EmaxT(Domain_set[T], MC_ϵ)
+    @time fEmax, tEmax = @timed EmaxT(Domain_set[T], MC_ϵ[:,:,T])
     Emaxall = OrderedDict(T => fEmax)
     timeEmax = Array{Float64}(undef, T-1, 2)
     timeEmax[T-1,:] = [T tEmax]
     for t = reverse(2:T-1)
         println("== Iteration t=$t ==\n")
-        @time fEmax, tEmax = @timed Emaxt(Domain_set[t], fEmax, MC_ϵ)
+        @time fEmax, tEmax = @timed Emaxt(Domain_set[t], fEmax, MC_ϵ[:,:,t])
         timeEmax[t,:] = [t tEmax]
         tempDict = OrderedDict(t => fEmax)
         Emaxall = merge(Emaxall,tempDict)
@@ -157,7 +157,7 @@ function SimulateAll(N::Int64, T::Int64, N_ϵ::Array, Emax::OrderedDict)
 end
 
 
-function benchDraws(MC_ϵ, Domain_set)
+function benchDraws(MC_ϵ, Domain_set, MC)
     @time Emaxall, timeEmax = genEmaxAll(Domain_set,MC_ϵ, T)
     #about 11-12 minutes when using 100k MC draws
     writedlm("output/timeEmax$(param)_MC$MC.txt", timeEmax)

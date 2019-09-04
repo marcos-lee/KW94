@@ -4,103 +4,79 @@ using LinearAlgebra
 using CSVFiles
 using DataFrames
 using DelimitedFiles
-using Optim
+using Optim, NLSolversBase
 import DataStructures.OrderedDict
+using LineSearches
+import NLopt
+
 
 include("feasibleSet.jl")
-include("estimation_functions.jl") #Smoothed AR
-#include("estimation_approx.jl")
+include("estimation_functions.jl")
 
-T = 10          #I start with t =1, the paper starts with t = 0
-N = 100
-MC = 2000
+function estimateModel()
+        Random.seed!(4)
 
-# use true parameters as guess to test
-param = 4       #which parameter set to use
+        #T = 3          #I start with t =1, the paper starts with t = 0
+        #N = 100
+        MC = 2000
+        sim = 100000
+        ApproxS = 200
+        lambda = 500.0
+        # use true parameters as guess to test
+        param = 1       #which parameter set to use
+        df = DataFrame(load("output/df$(param)_MC$sim.csv"))
+        state, wage, choice = convertDF(df)
+        T = size(wage, 2)
 
-# Change to Parameter1.jl, Parameter2.jl or Parameters3.jl to use another set of parameters
-include("Parameters$param.jl")
+        # Change to Parameter1.jl, Parameter2.jl or Parameters3.jl to use another set of parameters
+        st = [10,0,0,1] # Initial state at t=1
+
+        Domain_set = StateSpace(st, T)
+
+        #MC_ϵ = rand(MvNormal([0,0,0,0], sigma),sim) #Take S draws from the Multivariate Normal
+
+        Draws = rand(MvNormal(zeros(4), Matrix{Float64}(I, 4, 4)), MC * T)
+        Draws = reshape(Draws, 4, MC, T)
+
+        θ = makeInitialGuess(param)
+
+        return state, wage, choice, Draws, Domain_set, lambda, θ
+end
 
 
-
-st = [10,0,0,1] # Initial state at t=1
-
-@time Domain_set, tStateSpace = @timed StateSpace(st, T)
-
-
-sigma = [p.σ11^2 p.σ12 p.σ13 p.σ14;
-        p.σ12 p.σ22^2 p.σ23 p.σ24;
-        p.σ13 p.σ23 p.σ33^2 p.σ34;
-        p.σ14 p.σ24 p.σ34 p.σ44^2]
-A = cholesky(sigma)
-LT = A.L
-θ = [p.α10, p.α11, p.α12, p.α13, p.α14, p.α15,
-p.α20, p.α21, p.α22, p.α23, p.α24, p.α25,
-p.β0, p.β1, p.β2, p.γ0, log(LT[1,1]), log(LT[2,2]), log(LT[3,3]), log(LT[4,4]),
-LT[2,1], LT[3,1], LT[4,1], LT[3,2], LT[4,2], LT[4,3]]
-
-
-Random.seed!(4)
-Draws = rand(MvNormal(zeros(4), Matrix{Float64}(I, 4, 4)),MC)
-
-#df = DataFrame(load("kw94.csv"))
-df = DataFrame(load("output/df4_MC100000.csv"))
-
-df.choice = Array{Int64}(undef, size(df,1))
-for i = 1:size(df,1)
-        if df.school_c[i] == 1
-                df.choice[i] = 3
-        elseif df.work1c[i] == 1
-                df.choice[i] = 1
-        elseif df.work2c[i] == 1
-                df.choice[i] = 2
-        else
-                df.choice[i] = 4
+function wrapll(θ::Vector, grad::Vector)
+        if length(grad) > 0
+                nothing
         end
+        test = likelihood(state, wage, choice, Draws, Domain_set, lambda, θ)
+        println("value $test")
+        return test
 end
-df.id = df.idx
+####################
 
-ApproxS = 200
-lambda = 0.5
+# check type stability
+@code_warntype likelihood(state, wage, choice, Draws, Domain_set, lambda, θ)
+@code_warntype wrapll(θ, [])
+####################
+# USING NLOPT
+state, wage, choice, Draws, Domain_set, lambda, θ = estimateModel()
 
-@time likelihood(df, Draws, Domain_set, lambda, θ)
+opt = NLopt.Opt(:LN_NEWUOA, size(θ)[1])
+opt.min_objective = wrapll
+opt.xtol_rel = 1e-06
 
-function wrapll(θ)
-    return likelihood(df, Draws, Domain_set, lambda, θ)
-end
-
+(optf,optx,ret) = NLopt.optimize(opt, θ)
 
 
 #########################################################
-#garbage
-
-@time mini = optimize(wrapll, Optim.minimizer(mini), Optim.Options(store_trace = true,show_trace=true))
-
-
-func = TwiceDifferentiable(wrapll, θ, autodiff = :forward)
-@time mini = optimize(func, θ, Newton(), Optim.Options(store_trace = true,show_trace=true))
-#17hours
-
-func1 = OnceDifferentiable(wrapll, θ; autodiff = :forward)
-@time mini1 = optimize(func1, θ, LBFGS(), Optim.Options(store_trace = true,show_trace=true))
-
-using Pkg
-Pkg.add("LineSearches")
+# USING OPTIM
 using LineSearches
 
-func3 = TwiceDifferentiable(wrapll, θ; autodiff = :forward)
-@time mini3 = optimize(func3, θ, Newton(;alphaguess = LineSearches.InitialStatic(), linesearch = LineSearches.MoreThuente()), Optim.Options(store_trace = true,show_trace=true))
+function Optimwrapll(θ::Vector)
+        res = likelihood(state, wage, choice, Draws, Domain_set, lambda, θ)
+        return res
+end
 
-θ1 = θ .- 0.5 .* rand(26) .- 0.25
-func4 = OnceDifferentiable(wrapll, θ1; autodiff = :forward)
-@time mini4 = optimize(func4, θ1, LBFGS(;linesearch = BackTracking()), Optim.Options(store_trace = true,show_trace=true))
-
-func3 = TwiceDifferentiable(wrapll, θ; autodiff = :forward)
-@time mini3 = optimize(func3, θ, Newton(;alphaguess = LineSearches.InitialStatic(), linesearch = LineSearches.MoreThuente()), Optim.Options(store_trace = true,show_trace=true))
-
-@time mini5 = optimize(func4, θ1, Optim.Options(store_trace = true,show_trace=true))
-
-save("minimization2.jld", "mini2")
-
-Optim.minimizer(mini4)
-Optim.minimizer(mini4) .- θ
+# forward for Automatic Diff, finite for Finite Diff
+func = OnceDifferentiable(Optimwrapll, θ; autodiff = :forward)
+@time mini = optimize(func, θ, LBFGS(;linesearch = BackTracking()), Optim.Options(store_trace = true,show_trace=true, iterations = 5000))

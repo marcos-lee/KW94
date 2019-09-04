@@ -1,5 +1,5 @@
 #Julia 1.0.2
-function feasibleSet(st::Vector{Int64}, T)
+function feasibleSet(st::Vector{Int64}, T::Int64)
     up = Vector{Vector{Int64}}(undef,4)
     up[1] = [1,0,0,0]
     up[2] = [0,1,0,0]
@@ -25,7 +25,7 @@ function feasibleSet(st::Vector{Int64}, T)
         end
     else
         st[4] = 0
-        output = st
+        output = Vector{Vector{Int64}}(st,1)
     end
     return output
 end
@@ -39,7 +39,7 @@ function StateSpace(st::Vector{Int64}, T::Int64)
     # Stay at home
     Domain_set = OrderedDict{Int64,Vector{Vector{Int64}}}()
     D = Vector{Vector{Int64}}(undef,0)
-    Domain_set[2] = vcat(feasibleSet(st),D)
+    Domain_set[2] = vcat(feasibleSet(st, T),D)
     for t = 2:T-1
         D = Vector{Vector{Int64}}(undef,0)
         for i in Domain_set[t]

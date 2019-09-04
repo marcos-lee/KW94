@@ -77,7 +77,6 @@ function createX(fmaxE::OrderedDict, fEv1::OrderedDict, fEv2::OrderedDict, fEv3:
     n = size(collect(values(fmaxE)),1)
     x1 = collect(values(fmaxE)) .- collect(values(fEv1))
     x2 = collect(values(fmaxE)) .- collect(values(fEv2))
-
     x4 = collect(values(fmaxE)) .- collect(values(fEv4))
     x5 = (collect(values(fmaxE)) .- collect(values(fEv1))).^0.5
     x6 = (collect(values(fmaxE)) .- collect(values(fEv2))).^0.5
@@ -105,7 +104,7 @@ function genApproxDataT(Domain::Array, MC_ϵ::Array)
     return βap, fEmax
 end
 
-function ApproximateTerminal(ApproxS::Int64)
+function ApproximateTerminal(ApproxS::Int64, MC_ϵ::Array)
     rngDomain = sample(Domain_set[T], ApproxS; replace=false)
     βap, fEmaxS = genApproxDataT(rngDomain, MC_ϵ)
     fmaxE, fEv1, fEv2, fEv3, fEv4 = maxET(Domain_set[T], MC_ϵ)
@@ -140,7 +139,7 @@ function genApproxData(Domain::Array, MC_ϵ::Array, fEmaxhat::OrderedDict)
 end
 
 
-function ApproximateOnce(ApproxS::Int64, Domain::Array, fEmaxhat::OrderedDict)
+function ApproximateOnce(ApproxS::Int64, Domain::Array, fEmaxhat::OrderedDict, MC_ϵ::Array)
     rngDomain = sample(Domain, ApproxS; replace=false)
     βap, fEmaxS = genApproxData(rngDomain, MC_ϵ, fEmaxhat)
     fmaxE, fEv1, fEv2, fEv3, fEv4 = maxEt(Domain, fEmaxhat, MC_ϵ)
@@ -161,16 +160,16 @@ function genEmaxAllHat(Domain_set::OrderedDict, ApproxS::Int64)
     println("\n Backward induction \n")
     println("\n Solving Approximation Model \n")
     println("== Iteration t=$T ==\n")
-    @time fEmaxhat, tEmaxhat= @timed ApproximateTerminal(ApproxS)
+    @time fEmaxhat, tEmaxhat= @timed ApproximateTerminal(ApproxS, MC_ϵ[:,:,T])
     Emaxallhat = OrderedDict(T => fEmaxhat)
     timeEmaxhat = Array{Float64}(undef, T-1, 2)
     timeEmaxhat[T-1,:] = [T tEmaxhat]
     for t = reverse(2:T-1)
         println("== Iteration t=$t ==\n")
         if size(Domain_set[t],1) >= ApproxS
-            @time fEmaxhat, tEmaxhat = @timed ApproximateOnce(ApproxS, Domain_set[t], Emaxallhat[t+1])
+            @time fEmaxhat, tEmaxhat = @timed ApproximateOnce(ApproxS, Domain_set[t], Emaxallhat[t+1], MC_ϵ[:,:,t])
         else
-            @time fEmaxhat, tEmaxhat = @timed Emaxt(Domain_set[t], Emaxallhat[t+1], MC_ϵ)
+            @time fEmaxhat, tEmaxhat = @timed Emaxt(Domain_set[t], Emaxallhat[t+1], MC_ϵ[:,:,t])
         end
         timeEmaxhat[t,:] = [t tEmaxhat]
         tempDict = OrderedDict(t => fEmaxhat)

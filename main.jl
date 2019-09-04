@@ -6,6 +6,7 @@ using DataFrames
 using DelimitedFiles
 using Optim
 
+import StatsBase.sample
 
 # This code heavily relies on Dictionaries. In Julia (and maybe elsewhere)
 # dictionary entries are randomly ordered. In the full solution problem,
@@ -19,70 +20,55 @@ import DataStructures.OrderedDict
 
 include("feasibleSet.jl")
 include("functions.jl")
-
-
-N = 100        #Number of people
-T = 10          #I start with t =1, the paper starts with t = 0
-#MC = 1000     #Number of MC draws
-
-param = 4       #which parameter set to use
-
-# Change to Parameter1.jl, Parameter2.jl or Parameters3.jl to use another set of parameters
-include("Parameters$param.jl")
-st = [10,0,0,1] # Initial state at t=1
 include("maxe.jl")
 
 
-import StatsBase.sample
+function SimulateAll(N::Int64, T::Int64, param::Int64)
 
-# Generates a dictionary, where the key is the time t,
-# and the value is an Array of Arrays, with each array being a possible state point at that period
-@time Domain_set, tStateSpace = @timed StateSpace(st, T)
-
-mu = [0, 0, 0, 0] #Mean of ϵ
-sigma = [p.σ11^2 p.σ12 p.σ13 p.σ14;
-        p.σ12 p.σ22^2 p.σ23 p.σ24;
-        p.σ13 p.σ23 p.σ33^2 p.σ34;
-        p.σ14 p.σ24 p.σ34 p.σ44^2]
-
-Random.seed!(3277)
-N_ϵ = Vector{Array{Float64,2}}(undef,N)
-for i = 1:N
-    N_ϵ[i] = rand(MvNormal(mu, sigma),T)
-end
+    # Change to Parameter1.jl, Parameter2.jl or Parameters3.jl to use another set of parameters
+    include("Parameters$param.jl")
+    st = [10,0,0,1] # Initial state at t=1
 
 
+    ###################################
+    # Generates a dictionary, where the key is the time t,
+    # and the value is an Array of Arrays, with each array being a possible state point at that period
+    Domain_set = StateSpace(st, T)
 
-iter = [100000 2000 1000 250]
-iter2 = [2000 500]
 
-function createAll(iter, iter2)
-    for i = iter
-        println("\n Solving for MC draws = $i \n")
-        global MC = i
-        Random.seed!(4)
-        global MC_ϵ = rand(MvNormal(mu, sigma),MC) #Take S draws from the Multivariate Normal
-        benchDraws(MC_ϵ, Domain_set)
-        if i == 2000
-            for j = iter2
-                println("\n Approximating for $j state points\n")
-                global ApproxS = j
-                benchApprox(MC_ϵ, Domain_set, ApproxS)
+    mu = [0, 0, 0, 0] #Mean of ϵ
+    sigma = [p.σ11^2 p.σ12 p.σ13 p.σ14;
+            p.σ12 p.σ22^2 p.σ23 p.σ24;
+            p.σ13 p.σ23 p.σ33^2 p.σ34;
+            p.σ14 p.σ24 p.σ34 p.σ44^2]
+
+            Random.seed!(2)
+            N_ϵ = Vector{Array{Float64,2}}(undef,N)
+            for i = 1:N
+                N_ϵ[i] = rand(MvNormal(mu, sigma),T)
             end
-        end
-    end
+
+
+
+            iter = [100000 2000 1000 250]
+            iter2 = [2000 500]
+
+            for i = iter
+                println("\n Solving for MC draws = $i \n")
+                MC = i
+                Random.seed!(4)
+                MC_ϵ = rand(MvNormal(zeros(4), Matrix{Float64}(I, 4, 4)), MC * T)
+                MC_ϵ = reshape(MC_ϵ, 4, MC, T)
+                benchDraws(MC_ϵ, Domain_set, MC)
+                if i == 2000
+                    for j = iter2
+                        println("\n Approximating for $j state points\n")
+                        ApproxS = j
+                        benchApprox(MC_ϵ, Domain_set, ApproxS)
+                    end
+                end
+            end
 end
-
-
-createAll(iter,iter2)
-
-
-
-
-
-
-
-
 
 #Old version
 #=
